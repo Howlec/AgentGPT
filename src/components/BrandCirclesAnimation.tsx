@@ -6,11 +6,13 @@ import React, { useEffect, useRef } from "react";
  * Animates the three intertwined brand circles between two states:
  *
  *  1. LOGO state  — the three rings overlap exactly as in the brand logo
- *     (geometry extracted from the "Full Colour Circle" EPS artwork).
+ *     (geometry extracted from the "Full Colour Circle" EPS artwork),
+ *     scaled down and centred in the middle of the frame.
  *  2. VENN state  — the rings peel out one at a time (orange, then magenta,
- *     then cherry) into a labelled diagram: the orange "Leadership" disc on
- *     top intersects the magenta "Resolution" disc below, and both sit
- *     inside the cherry "Culture" ring.
+ *     then cherry) into a labelled diagram: the orange "Leadership" circle
+ *     on top intersects the magenta "Resolution" circle below (both drawn
+ *     as white-filled outlines), and both sit inside the cherry "Culture"
+ *     ring. Labels are dark grey.
  *
  * The rings use multiply blending, so the overlaps darken exactly like the
  * printed logo. Because of that, the component should be placed on a light
@@ -34,38 +36,50 @@ interface Shape {
 const CX = 309.5;
 const CY = 309;
 
+// The logo starts small, centred in the middle of where the 3 circles form
+const LOGO_SCALE = 0.5;
+const scaledLogo = (x: number, y: number, r: number, sw: number): ShapeState => ({
+  x: CX + (x - CX) * LOGO_SCALE,
+  y: CY + (y - CY) * LOGO_SCALE,
+  r: r * LOGO_SCALE,
+  sw: sw * LOGO_SCALE,
+});
+
+// Outline width shared by all three circles in the labelled diagram
+const RING_W = 45;
+
 // Each ring is a stroked circle: the painted annulus is [r - sw/2, r + sw/2].
 // A "filled disc" of radius R is a stroked circle with r = R/2, sw = R.
 const SHAPES: Record<"orange" | "magenta" | "cherry", Shape> = {
   orange: {
-    logo: { x: 324.5, y: 326.0, r: 250.0, sw: 67.0 },
-    venn: { x: CX, y: CY - 95, r: 75, sw: 150 }, // filled disc, top
+    logo: scaledLogo(324.5, 326.0, 250.0, 67.0),
+    venn: { x: CX, y: CY - 70, r: 125, sw: RING_W }, // white-filled outline, top
   },
   magenta: {
-    logo: { x: 289.9, y: 322.1, r: 250.65, sw: 61.7 },
-    venn: { x: CX, y: CY + 95, r: 75, sw: 150 }, // filled disc, bottom
+    logo: scaledLogo(289.9, 322.1, 250.65, 61.7),
+    venn: { x: CX, y: CY + 70, r: 125, sw: RING_W }, // white-filled outline, bottom
   },
   cherry: {
-    logo: { x: 297.5, y: 295.0, r: 249.7, sw: 59.6 },
-    venn: { x: CX, y: CY, r: 272.5, sw: 45 }, // enclosing ring
+    logo: scaledLogo(297.5, 295.0, 249.7, 59.6),
+    venn: { x: CX, y: CY, r: 272.5, sw: RING_W }, // enclosing ring
   },
 };
 
 const COLORS = {
   orange: "#EB4A19",
   magenta: "#A3098B",
-  cherry: "#8A0000",
+  cherry: "#9A1014",
 };
 
 // Timeline (seconds)
 const T = {
-  logoHold: 1.6, // intertwined logo at rest
-  morph: 1.2, // duration of each shape's morph
-  stagger: 0.8, // delay between orange -> magenta -> cherry
-  labelFade: 0.6,
-  vennHold: 3.4, // labelled diagram at rest
-  returnMorph: 1.4, // all shapes flow back into the logo together
-  endHold: 1.2,
+  logoHold: 2.0, // intertwined logo at rest
+  morph: 1.7, // duration of each shape's morph
+  stagger: 1.15, // delay between orange -> magenta -> cherry
+  labelFade: 0.8,
+  vennHold: 4.6, // labelled diagram at rest
+  returnMorph: 2.0, // all shapes flow back into the logo together
+  endHold: 1.8,
 };
 const tOrange = T.logoHold;
 const tMagenta = tOrange + T.stagger;
@@ -200,8 +214,8 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
       <text
         ref={leadershipRef}
         x={CX}
-        y={CY - 155}
-        fontSize={34}
+        y={CY - 125}
+        fontSize={28}
         opacity={0}
         style={labelStyle}
       >
@@ -210,8 +224,8 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
       <text
         ref={resolutionRef}
         x={CX}
-        y={CY + 155}
-        fontSize={34}
+        y={CY + 125}
+        fontSize={28}
         opacity={0}
         style={labelStyle}
       >
@@ -220,8 +234,8 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
       <text
         ref={cultureRef}
         x={CX}
-        y={CY + 272.5}
-        fontSize={26}
+        y={CY + 233}
+        fontSize={24}
         opacity={0}
         style={labelStyle}
       >
@@ -232,7 +246,7 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
 };
 
 const labelStyle: React.CSSProperties = {
-  fill: "#ffffff",
+  fill: "#4A4A4A",
   textAnchor: "middle",
   dominantBaseline: "middle",
   fontWeight: 600,

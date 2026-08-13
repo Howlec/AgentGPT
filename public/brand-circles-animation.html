@@ -11,7 +11,7 @@
   .brand-circles svg { width: 100%; height: 100%; display: block; }
   .brand-circles circle.ring { fill: none; mix-blend-mode: multiply; }
   .brand-circles text {
-    fill: #ffffff; text-anchor: middle; dominant-baseline: middle;
+    fill: #4A4A4A; text-anchor: middle; dominant-baseline: middle;
     font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   }
 </style>
@@ -20,50 +20,59 @@
 <div class="brand-circles" id="stage">
   <svg viewBox="0 0 619 618" role="img" aria-label="Animated diagram: Leadership and Resolution circles intersect within a Culture circle, forming the company logo">
     <g isolation="isolate">
-      <circle id="c-cherry"  class="ring" stroke="#8A0000" />
+      <circle id="c-cherry"  class="ring" stroke="#9A1014" />
       <circle id="c-orange"  class="ring" stroke="#EB4A19" />
       <circle id="c-magenta" class="ring" stroke="#A3098B" />
     </g>
-    <text id="t-leadership" font-size="34">Leadership</text>
-    <text id="t-resolution" font-size="34">Resolution</text>
-    <text id="t-culture"    font-size="26">Culture</text>
+    <text id="t-leadership" font-size="28">Leadership</text>
+    <text id="t-resolution" font-size="28">Resolution</text>
+    <text id="t-culture"    font-size="24">Culture</text>
   </svg>
 </div>
 <script>
 (function () {
-  // --- Geometry extracted from the brand EPS (viewBox 0 0 619 618) ---
+  // --- Geometry from the brand EPS (viewBox 0 0 619 618) ---
   // Each ring is a stroked circle: annulus = [r - sw/2, r + sw/2].
-  // LOGO state = the intertwined logo. VENN state = labelled diagram.
+  // LOGO state = the intertwined logo, scaled down to sit in the middle.
+  // VENN state = labelled diagram of white-filled outline circles.
   const CX = 309.5, CY = 309;
+  const LOGO_SCALE = 0.5; // logo starts small, centred amid the 3 circles
+  const scaled = (x, y, r, sw) => ({
+    x: CX + (x - CX) * LOGO_SCALE,
+    y: CY + (y - CY) * LOGO_SCALE,
+    r: r * LOGO_SCALE,
+    sw: sw * LOGO_SCALE,
+  });
+  const RING_W = 45; // outline width shared by all three circles in the diagram
   const SHAPES = {
     orange: {
-      logo: { x: 324.5, y: 326.0, r: 250.00, sw: 67.0 },
-      venn: { x: CX,    y: CY - 95, r: 75, sw: 150 },     // filled disc, top
+      logo: scaled(324.5, 326.0, 250.00, 67.0),
+      venn: { x: CX, y: CY - 70, r: 125, sw: RING_W },   // white-filled outline, top
     },
     magenta: {
-      logo: { x: 289.9, y: 322.1, r: 250.65, sw: 61.7 },
-      venn: { x: CX,    y: CY + 95, r: 75, sw: 150 },     // filled disc, bottom
+      logo: scaled(289.9, 322.1, 250.65, 61.7),
+      venn: { x: CX, y: CY + 70, r: 125, sw: RING_W },   // white-filled outline, bottom
     },
     cherry: {
-      logo: { x: 297.5, y: 295.0, r: 249.70, sw: 59.6 },
-      venn: { x: CX,    y: CY,     r: 272.5, sw: 45 },    // enclosing ring
+      logo: scaled(297.5, 295.0, 249.70, 59.6),
+      venn: { x: CX, y: CY, r: 272.5, sw: RING_W },      // enclosing ring
     },
   };
   const LABELS = {
-    leadership: { x: CX, y: CY - 155 },
-    resolution: { x: CX, y: CY + 155 },
-    culture:    { x: CX, y: CY + 272.5 },
+    leadership: { x: CX, y: CY - 125 },
+    resolution: { x: CX, y: CY + 125 },
+    culture:    { x: CX, y: CY + 233 },
   };
 
   // --- Timeline (seconds) ---
   const T = {
-    logoHold: 1.6,
-    morph: 1.2,          // duration of each shape's morph
-    stagger: 0.8,        // delay between orange -> magenta -> cherry
-    labelFade: 0.6,
-    vennHold: 3.4,
-    returnMorph: 1.4,    // all shapes flow back together
-    endHold: 1.2,
+    logoHold: 2.0,
+    morph: 1.7,          // duration of each shape's morph
+    stagger: 1.15,       // delay between orange -> magenta -> cherry
+    labelFade: 0.8,
+    vennHold: 4.6,
+    returnMorph: 2.0,    // all shapes flow back together
+    endHold: 1.8,
   };
   const tOrange  = T.logoHold;
   const tMagenta = tOrange + T.stagger;
