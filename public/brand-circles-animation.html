@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brand Circles Animation</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #ffffff; }
+  body { display: flex; align-items: center; justify-content: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .brand-circles { width: min(90vmin, 640px); height: min(90vmin, 640px); }
+  .brand-circles svg { width: 100%; height: 100%; display: block; }
+  .brand-circles circle.ring { fill: none; mix-blend-mode: multiply; }
+  .brand-circles text {
+    fill: #ffffff; text-anchor: middle; dominant-baseline: middle;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="brand-circles" id="stage">
+  <svg viewBox="0 0 619 618" role="img" aria-label="Animated diagram: Leadership and Resolution circles intersect within a Culture circle, forming the company logo">
+    <g isolation="isolate">
+      <circle id="c-cherry"  class="ring" stroke="#8A0000" />
+      <circle id="c-orange"  class="ring" stroke="#EB4A19" />
+      <circle id="c-magenta" class="ring" stroke="#A3098B" />
+    </g>
+    <text id="t-leadership" font-size="34">Leadership</text>
+    <text id="t-resolution" font-size="34">Resolution</text>
+    <text id="t-culture"    font-size="26">Culture</text>
+  </svg>
+</div>
+<script>
+(function () {
+  // --- Geometry extracted from the brand EPS (viewBox 0 0 619 618) ---
+  // Each ring is a stroked circle: annulus = [r - sw/2, r + sw/2].
+  // LOGO state = the intertwined logo. VENN state = labelled diagram.
+  const CX = 309.5, CY = 309;
+  const SHAPES = {
+    orange: {
+      logo: { x: 324.5, y: 326.0, r: 250.00, sw: 67.0 },
+      venn: { x: CX,    y: CY - 95, r: 75, sw: 150 },     // filled disc, top
+    },
+    magenta: {
+      logo: { x: 289.9, y: 322.1, r: 250.65, sw: 61.7 },
+      venn: { x: CX,    y: CY + 95, r: 75, sw: 150 },     // filled disc, bottom
+    },
+    cherry: {
+      logo: { x: 297.5, y: 295.0, r: 249.70, sw: 59.6 },
+      venn: { x: CX,    y: CY,     r: 272.5, sw: 45 },    // enclosing ring
+    },
+  };
+  const LABELS = {
+    leadership: { x: CX, y: CY - 155 },
+    resolution: { x: CX, y: CY + 155 },
+    culture:    { x: CX, y: CY + 272.5 },
+  };
+
+  // --- Timeline (seconds) ---
+  const T = {
+    logoHold: 1.6,
+    morph: 1.2,          // duration of each shape's morph
+    stagger: 0.8,        // delay between orange -> magenta -> cherry
+    labelFade: 0.6,
+    vennHold: 3.4,
+    returnMorph: 1.4,    // all shapes flow back together
+    endHold: 1.2,
+  };
+  const tOrange  = T.logoHold;
+  const tMagenta = tOrange + T.stagger;
+  const tCherry  = tMagenta + T.stagger;
+  const tVennDone = tCherry + T.morph;
+  const tLabelsOut = tVennDone + T.vennHold;
+  const tReturn = tLabelsOut + T.labelFade;
+  const TOTAL = tReturn + T.returnMorph + T.endHold;
+
+  const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // progress 0 (logo) -> 1 (venn) for one shape at absolute time `now`
+  function shapeProgress(now, tOut) {
+    const out = ease(clamp01((now - tOut) / T.morph));
+    const back = ease(clamp01((now - tReturn) / T.returnMorph));
+    return out * (1 - back);
+  }
+
+  function labelOpacity(now, tOut) {
+    const tIn = tOut + T.morph; // fade in once its shape has settled
+    const on = clamp01((now - tIn) / T.labelFade);
+    const off = clamp01((now - tLabelsOut) / T.labelFade);
+    return on * (1 - off);
+  }
+
+  const el = (id) => document.getElementById(id);
+  const circles = { orange: el('c-orange'), magenta: el('c-magenta'), cherry: el('c-cherry') };
+  const labels = { leadership: el('t-leadership'), resolution: el('t-resolution'), culture: el('t-culture') };
+  const shapeTimes = { orange: tOrange, magenta: tMagenta, cherry: tCherry };
+  const labelForShape = { orange: 'leadership', magenta: 'resolution', cherry: 'culture' };
+
+  function apply(now) {
+    for (const name of Object.keys(SHAPES)) {
+      const s = SHAPES[name];
+      const p = shapeProgress(now, shapeTimes[name]);
+      const c = circles[name];
+      c.setAttribute('cx', lerp(s.logo.x, s.venn.x, p));
+      c.setAttribute('cy', lerp(s.logo.y, s.venn.y, p));
+      c.setAttribute('r',  Math.max(0.1, lerp(s.logo.r, s.venn.r, p)));
+      c.setAttribute('stroke-width', lerp(s.logo.sw, s.venn.sw, p));
+      const lbl = labels[labelForShape[name]];
+      lbl.setAttribute('opacity', labelOpacity(now, shapeTimes[name]).toFixed(3));
+    }
+    labels.leadership.setAttribute('x', LABELS.leadership.x); labels.leadership.setAttribute('y', LABELS.leadership.y);
+    labels.resolution.setAttribute('x', LABELS.resolution.x); labels.resolution.setAttribute('y', LABELS.resolution.y);
+    labels.culture.setAttribute('x', LABELS.culture.x);       labels.culture.setAttribute('y', LABELS.culture.y);
+  }
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) {
+    // Static labelled diagram for reduced-motion users.
+    apply(tVennDone + 0.5);
+    return;
+  }
+
+  // Allow deterministic frame capture: ?t=<seconds> freezes the animation.
+  const params = new URLSearchParams(location.search);
+  if (params.has('t')) {
+    apply(parseFloat(params.get('t')) % TOTAL);
+    return;
+  }
+
+  let start = null;
+  function frame(ts) {
+    if (start === null) start = ts;
+    apply(((ts - start) / 1000) % TOTAL);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
