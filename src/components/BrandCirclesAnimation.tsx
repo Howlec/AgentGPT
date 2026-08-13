@@ -5,14 +5,15 @@ import React, { useEffect, useRef } from "react";
  *
  * Animates the three intertwined brand circles between two states:
  *
- *  1. LOGO state  — the three rings overlap exactly as in the brand logo
- *     (geometry extracted from the "Full Colour Circle" EPS artwork),
- *     scaled down and centred in the middle of the frame.
+ *  1. LOGO state  — the full logo lockup: the three rings overlap exactly
+ *     as in the brand logo (geometry extracted from the "Full Colour
+ *     Circle" EPS artwork), sitting above "The Resolution Centre" wordmark.
  *  2. VENN state  — the rings peel out one at a time (orange, then magenta,
  *     then cherry) into a labelled diagram: the orange "Leadership" circle
  *     on top intersects the magenta "Resolution" circle below (both drawn
  *     as white-filled outlines), and both sit inside the cherry "Culture"
- *     ring. Labels are dark grey.
+ *     ring. Labels are dark grey. The wordmark fades out while the
+ *     circles are unfolded, so only the words in the circles remain.
  *
  * The rings use multiply blending, so the overlaps darken exactly like the
  * printed logo. Because of that, the component should be placed on a light
@@ -36,11 +37,12 @@ interface Shape {
 const CX = 309.5;
 const CY = 309;
 
-// The logo starts small, centred in the middle of where the 3 circles form
-const LOGO_SCALE = 0.5;
+// The logo lockup: ring scaled down, sitting above the wordmark
+const LOGO_SCALE = 0.43;
+const LOGO_CY = 183.5; // ring centre while the wordmark is shown
 const scaledLogo = (x: number, y: number, r: number, sw: number): ShapeState => ({
   x: CX + (x - CX) * LOGO_SCALE,
-  y: CY + (y - CY) * LOGO_SCALE,
+  y: LOGO_CY + (y - CY) * LOGO_SCALE,
   r: r * LOGO_SCALE,
   sw: sw * LOGO_SCALE,
 });
@@ -73,7 +75,7 @@ const COLORS = {
 
 // Timeline (seconds)
 const T = {
-  logoHold: 2.0, // intertwined logo at rest
+  logoHold: 2.4, // full logo lockup at rest
   morph: 1.7, // duration of each shape's morph
   stagger: 1.15, // delay between orange -> magenta -> cherry
   labelFade: 0.8,
@@ -87,6 +89,7 @@ const tCherry = tMagenta + T.stagger;
 const tVennDone = tCherry + T.morph;
 const tLabelsOut = tVennDone + T.vennHold;
 const tReturn = tLabelsOut + T.labelFade;
+const tWordmarkIn = tReturn + T.returnMorph * 0.85; // fade back as the logo re-forms
 const TOTAL = tReturn + T.returnMorph + T.endHold;
 
 const SHAPE_TIMES = { orange: tOrange, magenta: tMagenta, cherry: tCherry };
@@ -111,6 +114,14 @@ const labelOpacity = (now: number, tOut: number) => {
   return on * (1 - off);
 };
 
+// "The Resolution Centre" is visible with the logo and hidden while the
+// circles are out as the labelled diagram
+const wordmarkOpacity = (now: number) => {
+  const out = clamp01((now - tOrange) / 0.8);
+  const back = clamp01((now - tWordmarkIn) / 0.8);
+  return Math.max(1 - out, back);
+};
+
 export interface BrandCirclesAnimationProps {
   className?: string;
   /** Label shown in the orange (top) circle. Default: "Leadership" */
@@ -119,6 +130,8 @@ export interface BrandCirclesAnimationProps {
   resolutionLabel?: string;
   /** Label shown on the cherry (outer) ring. Default: "Culture" */
   cultureLabel?: string;
+  /** Wordmark lines shown beneath the logo. Default: The / Resolution / Centre */
+  wordmarkLines?: [string, string, string];
 }
 
 const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
@@ -126,6 +139,7 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
   leadershipLabel = "Leadership",
   resolutionLabel = "Resolution",
   cultureLabel = "Culture",
+  wordmarkLines = ["The", "Resolution", "Centre"],
 }) => {
   const orangeRef = useRef<SVGCircleElement>(null);
   const magentaRef = useRef<SVGCircleElement>(null);
@@ -133,6 +147,7 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
   const leadershipRef = useRef<SVGTextElement>(null);
   const resolutionRef = useRef<SVGTextElement>(null);
   const cultureRef = useRef<SVGTextElement>(null);
+  const wordmarkRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
     const circles = {
@@ -162,6 +177,10 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
           labelOpacity(now, SHAPE_TIMES[name]).toFixed(3)
         );
       });
+      wordmarkRef.current?.setAttribute(
+        "opacity",
+        wordmarkOpacity(now).toFixed(3)
+      );
     };
 
     const reduced =
@@ -189,7 +208,7 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
       viewBox="0 0 619 618"
       className={className}
       role="img"
-      aria-label={`Animated diagram: ${leadershipLabel} and ${resolutionLabel} circles intersect within a ${cultureLabel} circle, forming the company logo`}
+      aria-label={`The Resolution Centre logo opens into a diagram: ${leadershipLabel} and ${resolutionLabel} circles intersect within a ${cultureLabel} circle`}
     >
       <g style={{ isolation: "isolate" }}>
         <circle
@@ -210,6 +229,13 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
           fill="none"
           style={{ mixBlendMode: "multiply" }}
         />
+      </g>
+      <g ref={wordmarkRef}>
+        {wordmarkLines.map((line, i) => (
+          <text key={i} x={CX} y={384 + i * 76} fontSize={72} style={wordmarkStyle}>
+            {line}
+          </text>
+        ))}
       </g>
       <text
         ref={leadershipRef}
@@ -245,14 +271,25 @@ const BrandCirclesAnimation: React.FC<BrandCirclesAnimationProps> = ({
   );
 };
 
+const brandFont =
+  '"Arial Rounded MT Bold", "Helvetica Rounded", ui-rounded, "Trebuchet MS", "Helvetica Neue", Arial, sans-serif';
+
 const labelStyle: React.CSSProperties = {
-  fill: "#4A4A4A",
+  fill: "#454546",
   textAnchor: "middle",
   dominantBaseline: "middle",
   fontWeight: 600,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  fontFamily: brandFont,
+};
+
+const wordmarkStyle: React.CSSProperties = {
+  fill: "#454546",
+  textAnchor: "middle",
+  dominantBaseline: "middle",
+  fontWeight: 700,
+  fontFamily: brandFont,
 };
 
 export default BrandCirclesAnimation;

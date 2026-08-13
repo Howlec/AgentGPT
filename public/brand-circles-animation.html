@@ -6,40 +6,52 @@
 <title>Brand Circles Animation</title>
 <style>
   html, body { margin: 0; height: 100%; background: #ffffff; }
-  body { display: flex; align-items: center; justify-content: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  body { display: flex; align-items: center; justify-content: center; }
   .brand-circles { width: min(90vmin, 640px); height: min(90vmin, 640px); }
   .brand-circles svg { width: 100%; height: 100%; display: block; }
   .brand-circles circle.ring { fill: none; mix-blend-mode: multiply; }
   .brand-circles text {
-    fill: #4A4A4A; text-anchor: middle; dominant-baseline: middle;
+    fill: #454546; text-anchor: middle; dominant-baseline: middle;
+    font-family: "Arial Rounded MT Bold", "Helvetica Rounded", ui-rounded,
+      "Trebuchet MS", "Helvetica Neue", Arial, sans-serif;
+  }
+  .brand-circles text.label {
     font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   }
+  .brand-circles text.wordmark { font-weight: 700; }
 </style>
 </head>
 <body>
 <div class="brand-circles" id="stage">
-  <svg viewBox="0 0 619 618" role="img" aria-label="Animated diagram: Leadership and Resolution circles intersect within a Culture circle, forming the company logo">
+  <svg viewBox="0 0 619 618" role="img" aria-label="The Resolution Centre logo opens into a diagram: Leadership and Resolution circles intersect within a Culture circle">
     <g isolation="isolate">
       <circle id="c-cherry"  class="ring" stroke="#9A1014" />
       <circle id="c-orange"  class="ring" stroke="#EB4A19" />
       <circle id="c-magenta" class="ring" stroke="#A3098B" />
     </g>
-    <text id="t-leadership" font-size="28">Leadership</text>
-    <text id="t-resolution" font-size="28">Resolution</text>
-    <text id="t-culture"    font-size="24">Culture</text>
+    <g id="wordmark">
+      <text class="wordmark" x="309.5" y="384" font-size="72">The</text>
+      <text class="wordmark" x="309.5" y="460" font-size="72">Resolution</text>
+      <text class="wordmark" x="309.5" y="536" font-size="72">Centre</text>
+    </g>
+    <text id="t-leadership" class="label" font-size="28">Leadership</text>
+    <text id="t-resolution" class="label" font-size="28">Resolution</text>
+    <text id="t-culture"    class="label" font-size="24">Culture</text>
   </svg>
 </div>
 <script>
 (function () {
   // --- Geometry from the brand EPS (viewBox 0 0 619 618) ---
   // Each ring is a stroked circle: annulus = [r - sw/2, r + sw/2].
-  // LOGO state = the intertwined logo, scaled down to sit in the middle.
+  // LOGO state = the full logo lockup (ring + wordmark), ring scaled down
+  //   and sitting above "The Resolution Centre".
   // VENN state = labelled diagram of white-filled outline circles.
   const CX = 309.5, CY = 309;
-  const LOGO_SCALE = 0.5; // logo starts small, centred amid the 3 circles
+  const LOGO_SCALE = 0.43;   // ring size within the logo lockup
+  const LOGO_CY = 183.5;     // ring centre while the wordmark is shown
   const scaled = (x, y, r, sw) => ({
     x: CX + (x - CX) * LOGO_SCALE,
-    y: CY + (y - CY) * LOGO_SCALE,
+    y: LOGO_CY + (y - CY) * LOGO_SCALE,
     r: r * LOGO_SCALE,
     sw: sw * LOGO_SCALE,
   });
@@ -66,7 +78,7 @@
 
   // --- Timeline (seconds) ---
   const T = {
-    logoHold: 2.0,
+    logoHold: 2.4,
     morph: 1.7,          // duration of each shape's morph
     stagger: 1.15,       // delay between orange -> magenta -> cherry
     labelFade: 0.8,
@@ -80,6 +92,7 @@
   const tVennDone = tCherry + T.morph;
   const tLabelsOut = tVennDone + T.vennHold;
   const tReturn = tLabelsOut + T.labelFade;
+  const tWordmarkIn = tReturn + T.returnMorph * 0.85; // fade back as the logo re-forms
   const TOTAL = tReturn + T.returnMorph + T.endHold;
 
   const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -100,9 +113,18 @@
     return on * (1 - off);
   }
 
+  // "The Resolution Centre" is visible with the logo and hidden while the
+  // circles are out as the labelled diagram.
+  function wordmarkOpacity(now) {
+    const out = clamp01((now - tOrange) / 0.8);
+    const back = clamp01((now - tWordmarkIn) / 0.8);
+    return Math.max(1 - out, back);
+  }
+
   const el = (id) => document.getElementById(id);
   const circles = { orange: el('c-orange'), magenta: el('c-magenta'), cherry: el('c-cherry') };
   const labels = { leadership: el('t-leadership'), resolution: el('t-resolution'), culture: el('t-culture') };
+  const wordmark = el('wordmark');
   const shapeTimes = { orange: tOrange, magenta: tMagenta, cherry: tCherry };
   const labelForShape = { orange: 'leadership', magenta: 'resolution', cherry: 'culture' };
 
@@ -121,6 +143,7 @@
     labels.leadership.setAttribute('x', LABELS.leadership.x); labels.leadership.setAttribute('y', LABELS.leadership.y);
     labels.resolution.setAttribute('x', LABELS.resolution.x); labels.resolution.setAttribute('y', LABELS.resolution.y);
     labels.culture.setAttribute('x', LABELS.culture.x);       labels.culture.setAttribute('y', LABELS.culture.y);
+    wordmark.setAttribute('opacity', wordmarkOpacity(now).toFixed(3));
   }
 
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
