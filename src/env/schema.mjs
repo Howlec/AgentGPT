@@ -29,12 +29,12 @@ export const serverSchema = z.object({
   ),
   OPENAI_API_KEY: z.string(),
 
-  GOOGLE_CLIENT_ID: requiredForProduction(),
-  GOOGLE_CLIENT_SECRET: requiredForProduction(),
-  GITHUB_CLIENT_ID: requiredForProduction(),
-  GITHUB_CLIENT_SECRET: requiredForProduction(),
-  DISCORD_CLIENT_ID: requiredForProduction(),
-  DISCORD_CLIENT_SECRET: requiredForProduction(),
+  GOOGLE_CLIENT_ID: z.string().trim().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
+  GITHUB_CLIENT_ID: z.string().trim().optional(),
+  GITHUB_CLIENT_SECRET: z.string().trim().optional(),
+  DISCORD_CLIENT_ID: z.string().trim().optional(),
+  DISCORD_CLIENT_SECRET: z.string().trim().optional(),
 });
 
 /**
