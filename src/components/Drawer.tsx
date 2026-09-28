@@ -191,7 +191,7 @@ const AuthItem: React.FC<{
   signIn: () => void;
   signOut: () => void;
 }> = ({ signIn, signOut, session }) => {
-  const icon = session?.user ? <FaSignInAlt /> : <FaSignOutAlt />;
+  const icon = session?.user ? <FaSignOutAlt /> : <FaSignInAlt />;
   const text = session?.user ? "Sign Out" : "Sign In";
   const onClick = session?.user ? signOut : signIn;
 

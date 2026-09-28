@@ -67,6 +67,10 @@ export const authOptions: NextAuthOptions = {
   },
   adapter: PrismaAdapter(prisma),
   providers: providers,
+  pages: {
+    signIn: "/signin",
+    error: "/signin",
+  },
   theme: {
     colorScheme: "dark",
     logo: "https://agentgpt.reworkd.ai/logo-white.svg",
